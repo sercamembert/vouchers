@@ -7,6 +7,7 @@ import {
 } from "@stripe/react-stripe-js";
 
 import P24BankSection from "./P24BankSection";
+import axios from "axios";
 interface Props {}
 
 const CheckoutForm = () => {
@@ -37,7 +38,14 @@ const CheckoutForm = () => {
     const accountholderName = (event.target as HTMLFormElement)[
       "accountholder-name"
     ];
-    const { error } = await stripe.confirmP24Payment("{CLIENT_SECRET}", {
+
+    const { data } = await axios.post("/api/create-paymnet-intent", {
+      data: { amount: 89 },
+    });
+    const clientSecret = data.clientSecret;
+    const voucherCode = data.voucherCode;
+
+    const { error } = await stripe.confirmP24Payment(clientSecret, {
       payment_method: {
         p24: p24Bank,
         billing_details: {
@@ -55,7 +63,7 @@ const CheckoutForm = () => {
           tos_shown_and_accepted: true,
         },
       },
-      return_url: "https://example.com/checkout/complete",
+      return_url: `http://localhost:3000/succes/${voucherCode}`,
     });
 
     if (error) {

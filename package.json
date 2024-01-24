@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.3.4",
     "@stripe/react-stripe-js": "^2.4.0",
     "@stripe/stripe-js": "^2.4.0",
     "axios": "^1.6.5",
@@ -16,8 +17,10 @@
     "raw-body": "^2.5.2",
     "react": "^18",
     "react-dom": "^18",
+    "react-hook-form": "^7.49.3",
     "stripe": "^14.13.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20",

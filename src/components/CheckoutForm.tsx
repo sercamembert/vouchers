@@ -1,46 +1,43 @@
 "use client";
-import React, { FormEvent } from "react";
+import React from "react";
+import { SubmitHandler, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useStripe,
   useElements,
   P24BankElement,
 } from "@stripe/react-stripe-js";
-
 import P24BankSection from "./P24BankSection";
 import axios from "axios";
-interface Props {}
+import schema, { CheckoutType } from "@/lib/resolvers/Checkout";
 
 const CheckoutForm = () => {
   const stripe = useStripe();
   const elements = useElements();
 
-  const handleSubmit = async (event: FormEvent) => {
-    // We don't want to let default form submission happen here,
-    // which would refresh the page.
-    event.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CheckoutType>({
+    resolver: zodResolver(schema),
+  });
+
+  const onSubmit: SubmitHandler<CheckoutType> = async (formData) => {
     if (!stripe || !elements) {
-      // Stripe.js hasn't yet loaded.
-      // Make sure to disable form submission until Stripe.js has loaded.
       return;
     }
 
     const p24Bank = elements.getElement(P24BankElement);
 
-    // For brevity, this example is using uncontrolled components for
-    // the accountholder's name. In a real world app you will
-    // probably want to use controlled components.
-    // https://reactjs.org/docs/uncontrolled-components.html
-    // https://reactjs.org/docs/forms.html#controlled-components
     if (!p24Bank) {
-      // Handle the case where P24BankElement is not available.
       return;
     }
-    const accountholderName = (event.target as HTMLFormElement)[
-      "accountholder-name"
-    ];
+
+    localStorage.setItem("checkoutFormData", JSON.stringify(formData));
 
     const { data } = await axios.post("/api/create-paymnet-intent", {
-      data: { amount: 89 },
+      data: { amount: formData.price },
     });
     const clientSecret = data.clientSecret;
     const voucherCode = data.voucherCode;
@@ -49,17 +46,12 @@ const CheckoutForm = () => {
       payment_method: {
         p24: p24Bank,
         billing_details: {
-          name: accountholderName.value,
-          email: "polidkamil@gmail.com",
+          name: formData.buyerFullName,
+          email: formData.email,
         },
       },
       payment_method_options: {
         p24: {
-          // In order to be able to pass the `tos_shown_and_accepted` parameter, you must
-          // ensure that the P24 regulations and information obligation consent
-          // text is clearly in the view of the customer. See
-          // stripe.com/docs/payments/p24/accept-a-payment#requirements
-          // for directions.
           tos_shown_and_accepted: true,
         },
       },
@@ -67,27 +59,75 @@ const CheckoutForm = () => {
     });
 
     if (error) {
-      // Show error to your customer.
       console.log(error.message);
     }
-
-    // Otherwise the customer will be redirected away from your
-    // page to complete the payment with their bank.
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit(onSubmit)}>
       <div className="form-row">
         <label>
-          Name
-          <input name="accountholder-name" placeholder="Jenny Rosen" required />
+          Cena vouchera
+          <input
+            type="number"
+            {...register("price", { valueAsNumber: true })}
+            required
+          />
+          {errors.price && <span>{errors.price.message}</span>}
         </label>
       </div>
       <div className="form-row">
-        <P24BankSection />
+        <label>
+          Imię i Nazwisko Kupującego
+          <input type="text" {...register("buyerFullName")} required />
+        </label>
       </div>
+      <div className="form-row">
+        <label>
+          Imię i Nazwisko Odbiorcy
+          <input type="text" {...register("receiverFullName")} required />
+        </label>
+      </div>
+      <div className="form-row">
+        <label>
+          Adres email
+          <input type="email" {...register("email")} required />
+        </label>
+      </div>
+      <div className="form-row">
+        <label>
+          Numer telefonu
+          <input type="tel" {...register("phone")} required />
+        </label>
+      </div>
+      <div className="form-row">
+        <label>
+          Ulica
+          <input type="text" {...register("street")} required />
+        </label>
+      </div>
+      <div className="form-row">
+        <label>
+          Numer ulicy
+          <input type="text" {...register("streetNumber")} required />
+        </label>
+      </div>
+      <div className="form-row">
+        <label>
+          Kod pocztowy
+          <input type="text" {...register("zipCode")} required />
+        </label>
+      </div>
+      <div className="form-row">
+        <label>
+          Miasto
+          <input type="text" {...register("city")} required />
+        </label>
+      </div>
+
+      <P24BankSection />
       <button type="submit" disabled={!stripe} className="disabled:opacity-30">
-        Submit Payment
+        Zatwierdź płatność
       </button>
     </form>
   );
